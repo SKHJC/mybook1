@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的雲端書庫 V4</title>
+    <style>
+        /* 基礎美化 */
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; font-size: 24px; }
+        
+        /* 輸入區網格佈局 */
+        .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 8px; background: #fafafa; }
+        label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        
+        /* 按鈕樣式 */
+        .btn-add { grid-column: 1 / -1; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 5px; }
+        .btn-add:hover { background-color: #0056b3; }
+        
+        /* 篩選與讀取狀態 */
+        .filter-info { background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 10px; display: none; justify-content: space-between; align-items: center; border: 1px solid #ffeeba; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: none; justify-content: center; align-items: center; z-index: 999; font-weight: bold; }
+        
+        /* 表格樣式 */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+        th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
+        th { background-color: #f8f9fa; }
+        
+        /* 可點擊元素 */
+        .clickable { color: #007bff; cursor: pointer; text-decoration: underline; }
+        .tag-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: #e9ecef; margin-right: 4px; cursor: pointer; border: 1px solid #ccc; }
+
+        /* 手機版適配 (RWD) */
+        @media (max-width: 600px) {
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
+            tr { border: 1px solid #ccc; margin-bottom: 10px; border-radius: 8px; padding: 10px; }
+            td { border: none; position: relative; padding-left: 40%; margin-bottom: 5px; }
+            td:before { position: absolute; left: 10px; width: 35%; font-weight: bold; content: attr(data-label); color: #888; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loading" class="loading-overlay">☁️ 雲端同步中...</div>
+
+<div class="container">
+    <h1>📚 私人雲端圖書館</h1>
+    
+    <div class="form-group">
+        <div><label>書名 (必填)</label><input type="text" id="title"></div>
+        <div><label>作者</label><input type="text" id="author"></div>
+        <div><label>內文語言</label><input list="langList" id="language"><datalist id="langList"></datalist></div>
+        <div><label>書籍類型</label><input list="catList" id="bookCategory"><datalist id="catList"></datalist></div>
+        <div><label>形式</label><select id="format"><option>實體書</option><option>電子書</option></select></div>
+        <div><label>集數</label><input type="number" id="volume" value="1"></div>
+        <div><label>作品狀態</label><select id="workStatus"><option>正文完結</option><option>正文未完結</option><option>番外完結</option><option>番外未完結</option><option>坑</option></select></div>
+        <div><label>閱讀狀態</label><input type="text" id="readProgress" placeholder="如：已看完"></div>
+        <div><label>標籤 (逗號隔開)</label><input type="text" id="tags" placeholder="推理, BL"></div>
+        <div><label>關聯 ID</label><input type="text" id="relationId"></div>
+        <button class="btn-add" onclick="saveToCloud()">儲存至雲端並同步</button>
+    </div>
+
+    <div id="filterInfo" class="filter-info">
+        <span id="filterText"></span>
+        <button onclick="clearFilter()">清除篩選</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>書名/作者</th>
+                <th>規格/語言</th>
+                <th>狀態/進度</th>
+                <th>類型/標籤</th>
+                <th>關聯 ID</th>
+            </tr>
+        </thead>
+        <tbody id="bookTableBody"></tbody>
+    </table>
+</div>
+
+<script>
+    // 這裡貼上你剛剛生成的 URL
+    const API_URL = "https://script.google.com/macros/s/AKfycbw3MN10RIbddtC_M9Z6zLaP608ZpFDsjKE7Od4s4uSQA5HIEBHH22gTYFkN8pOaTsZO/exec";
+    
+    let allBooks = []; // 儲存從雲端抓下來的所有書籍
+    let currentFilter = { key: null, value: null };
+
+    // --- 雲端操作功能 ---
+
+    async function saveToCloud() {
+        const title = document.getElementById('title').value;
+        if (!title) return alert("書名必填！");
+
+        showLoading(true);
+        const bookData = {
+            action: 'save',
+            title: title,
+            author: document.getElementById('author').value || '未知',
+            language: document.getElementById('language').value || '未分類',
+            bookCategory: document.getElementById('bookCategory').value || '未分類',
+            format: document.getElementById('format').value,
+            volume: parseInt(document.getElementById('volume').value),
+            workStatus: document.getElementById('workStatus').value,
+            readProgress: document.getElementById('readProgress').value || '無',
+            tags: document.getElementById('tags').value,
+            relationId: document.getElementById('relationId').value || '-'
+        };
+
+        try {
+            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(bookData) });
+            if (response.ok) {
+                alert("✅ 已成功同步至 Google 試算表！");
+                loadFromCloud(); // 重新整理列表
+            }
+        } catch (e) {
+            alert("❌ 儲存失敗，請檢查網路或 API 設定：" + e);
+        }
+        showLoading(false);
+    }
+
+    async function loadFromCloud() {
+        showLoading(true);
+        try {
+            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'read' }) });
+            const data = await response.json();
+            
+            // 轉換資料格式 (從 Google 的陣列轉回物件)
+            allBooks = data.map(row => ({
+                title: row[0], author: row[1], language: row[2], bookCategory: row[3],
+                format: row[4], volume: row[5], workStatus: row[6], readProgress: row[7],
+                tags: typeof row[8] === 'string' ? row[8].split(',').map(s=>s.trim()).filter(Boolean) : [],
+                relationId: row[9]
+            }));
+            
+            updateDatalists();
+            renderTable();
+        } catch (e) {
+            console.error("讀取失敗:", e);
+        }
+        showLoading(false);
+    }
+
+    // --- 介面顯示功能 ---
+
+    function renderTable() {
+        const tbody = document.getElementById('bookTableBody');
+        tbody.innerHTML = '';
+        
+        let displayBooks = allBooks;
+        if (currentFilter.key) {
+            displayBooks = allBooks.filter(b => {
+                if (currentFilter.key === '標籤') return b.tags.includes(currentFilter.value);
+                const map = {'作者':'author', '語言':'language', '類型':'bookCategory', '關聯ID':'relationId'};
+                return b[map[currentFilter.key]] === currentFilter.value;
+            });
+        }
+
+        displayBooks.forEach(book => {
+            const row = `<tr>
+                <td data-label="書名/作者"><strong>${book.title}</strong><br><span class="clickable" onclick="setFilter('作者','${book.author}')">${book.author}</span></td>
+                <td data-label="規格/語言">${book.format} (第 ${book.volume} 集)<br>內文：<span class="clickable" onclick="setFilter('語言','${book.language}')">${book.language}</span></td>
+                <td data-label="狀態/進度">${book.workStatus}<br>進度：${book.readProgress}</td>
+                <td data-label="類型/標籤"><span class="clickable" onclick="setFilter('類型','${book.bookCategory}')">${book.bookCategory}</span><br>${book.tags.map(t => `<span class="tag-pill" onclick="setFilter('標籤','${t}')">${t}</span>`).join('')}</td>
+                <td data-label="關聯 ID"><span class="clickable" onclick="setFilter('關聯ID','${book.relationId}')">${book.relationId}</span></td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function setFilter(key, value) {
+        if (!value || value === '-' || value === '未知') return;
+        currentFilter = { key, value };
+        document.getElementById('filterInfo').style.display = 'flex';
+        document.getElementById('filterText').innerText = `正在顯示 ${key}: ${value}`;
+        renderTable();
+    }
+
+    function clearFilter() {
+        currentFilter = { key: null, value: null };
+        document.getElementById('filterInfo').style.display = 'none';
+        renderTable();
+    }
+
+    function updateDatalists() {
+        const langs = [...new Set(allBooks.map(b => b.language))];
+        const cats = [...new Set(allBooks.map(b => b.bookCategory))];
+        document.getElementById('langList').innerHTML = langs.map(l => `<option value="${l}">`).join('');
+        document.getElementById('catList').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+    }
+
+    function showLoading(show) {
+        document.getElementById('loading').style.display = show ? 'flex' : 'none';
+    }
+
+    // 網頁開啟後自動載入資料
+    loadFromCloud();
+</script>
+
+</body>
+</html>

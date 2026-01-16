@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ㄎㄇ的購書紀錄 V6.3 - 全自由記憶版</title>
+    <title>ㄎㄇ的購書紀錄 V6.4 - 狀態擴充版</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -68,7 +68,16 @@
     </div>
 
     <div class="form-group" id="inputForm">
-        <div><label>購買狀態</label><select id="buyStatus"><option>已買完</option><option>未買完</option><option>未出完未買完</option><option>未出完已買到進度</option></select></div>
+        <div><label>購買狀態</label><select id="buyStatus">
+            <option>已買完</option>
+            <option>未買完</option>
+            <option>未出完未買完</option>
+            <option>未出完已買到進度</option>
+            <option>已購買</option>
+            <option>重複購買</option>
+            <option>重複購買(已隱藏)</option>
+        </select></div>
+        
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
         <div><label>作者</label><input list="authorList" id="author" placeholder="例：J.K. 羅琳"><datalist id="authorList"></datalist></div>
         <div><label>內文語言</label><input list="langList" id="language" placeholder="例：繁體中文"><datalist id="langList"></datalist></div>
@@ -86,7 +95,6 @@
         </div>
 
         <div><label>作品狀態</label><input list="workList" id="workStatus" placeholder="例：正文完結"><datalist id="workList"></datalist></div>
-        
         <div><label>閱讀狀態</label><input list="readList" id="readProgress" placeholder="例：未讀"><datalist id="readList"></datalist></div>
         <div><label>標籤 (逗號隔開)</label><input list="tagMemoryList" id="tags" placeholder="例：推理, 奇幻"><datalist id="tagMemoryList"></datalist></div>
         <div><label>關聯 ID</label><input list="relList" id="relationId" placeholder="例：HP"><datalist id="relList"></datalist></div>
@@ -121,7 +129,7 @@
 </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbw3MN10RIbddtC_M9Z6zLaP608ZpFDsjKE7Od4s4uSQA5HIEBHH22gTYFkN8pOaTsZO/exec"; 
+    const API_URL = "你的_GOOGLE_APPS_SCRIPT_URL"; // 記得確認這裡有填入你的網址
     
     let allBooks = []; 
     let currentFilter = { key: null, value: null };
@@ -299,17 +307,8 @@
     function updateDatalists() { 
         const getUniques = (key) => [...new Set(allBooks.map(b => b[key]))].filter(v => v && v !== '-' && v !== '未知' && v !== '無');
         const fillList = (id, list) => { document.getElementById(id).innerHTML = list.map(v => `<option value="${v}">`).join(''); };
-        
-        fillList('authorList', getUniques('author')); 
-        fillList('langList', getUniques('language')); 
-        fillList('catList', getUniques('bookCategory')); 
-        fillList('platList', getUniques('ePlatform'));
-        fillList('formatList', [...new Set(allBooks.flatMap(b => b.format))]); 
-        fillList('readList', getUniques('readProgress')); 
-        fillList('tagMemoryList', [...new Set(allBooks.flatMap(b => b.tags))]); 
-        fillList('relList', getUniques('relationId'));
-        
-        // 新增：作品狀態的記憶清單
+        fillList('authorList', getUniques('author')); fillList('langList', getUniques('language')); fillList('catList', getUniques('bookCategory')); fillList('platList', getUniques('ePlatform'));
+        fillList('formatList', [...new Set(allBooks.flatMap(b => b.format))]); fillList('readList', getUniques('readProgress')); fillList('tagMemoryList', [...new Set(allBooks.flatMap(b => b.tags))]); fillList('relList', getUniques('relationId'));
         fillList('workList', getUniques('workStatus'));
     }
     

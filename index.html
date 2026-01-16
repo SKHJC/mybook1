@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V6.7</title>
+    <title>📚 ㄎㄇ的購書紀錄 V6.8</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -63,7 +63,7 @@
     <div class="form-group" id="inputForm">
         <div><label>購買狀態</label><select id="buyStatus">
             <option>已買完</option><option>未買完</option><option>未出完未買完</option><option>未出完已買到進度</option>
-            <option>已購買</option><option>重複購買</option><option>重複購買(已隱藏)</option>
+            <option>已購買</option><option>重複購買</option><option>已隱藏</option>
         </select></div>
         <div><label>書名 (必填)</label><input type="text" id="title" placeholder="例：哈利波特"></div>
         <div><label>作者</label><input list="authorList" id="author" placeholder="例：J.K. 羅琳"><datalist id="authorList"></datalist></div>
@@ -93,15 +93,12 @@
     let currentFilter = { key: null, value: null };
     let isEditing = false;
 
-    // 輔助函式：判斷是否包含「未」並回傳對應 class
     function getPillClass(text) {
         return text.includes('未') ? 'tag-pill format-pill alert-pill' : 'tag-pill format-pill';
     }
 
-    // 輔助函式：將逗號字串轉為多個標籤的 HTML
     function getMultiPillHtml(fieldValue, filterKey) {
         if (!fieldValue || fieldValue === '-' || fieldValue === '無') return '-';
-        // 同時支援全形與半形逗號拆分
         const parts = fieldValue.split(/[，,]/).map(s => s.trim()).filter(Boolean);
         return parts.map(p => `<span class="${getPillClass(p)}" onclick="setFilter('${filterKey}','${p}')">${p}</span>`).join('');
     }

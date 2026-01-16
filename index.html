@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 ㄎㄇ的購書紀錄 V6.4</title>
+    <title>📚 ㄎㄇ的購書紀錄 V6.5</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
         .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -25,10 +25,12 @@
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; table-layout: fixed; }
         th, td { border-bottom: 1px solid #eee; padding: 12px 8px; text-align: left; vertical-align: top; word-wrap: break-word; }
         th { background-color: #f8f9fa; color: #666; font-weight: bold; border-top: 2px solid #007bff; }
-        .clickable { color: #007bff; cursor: pointer; text-decoration: underline; }
+        .clickable { cursor: pointer; }
         .edit-link { color: #28a745; font-weight: bold; cursor: pointer; }
         .tag-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: #e9ecef; margin-right: 4px; margin-bottom: 4px; cursor: pointer; border: 1px solid #ccc; }
-        .format-pill { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        /* 統一藍色圓角標籤樣式 */
+        .format-pill { background: #d1ecf1; color: #007bff; border: 1px solid #bee5eb; text-decoration: none; }
+        .format-pill:hover { background: #bbeeeb; }
         .progress-text { font-weight: bold; color: #333; }
         .progress-sub { font-size: 11px; color: #777; font-weight: normal; }
         .note-cell { font-size: 12px; color: #444; line-height: 1.4; white-space: pre-wrap; }
@@ -197,10 +199,14 @@
         displayBooks.forEach(book => {
             const volDisplay = book.volume.toString().includes('(全)') ? book.volume : book.volume + '集';
             tbody.innerHTML += `<tr>
-                <td data-label="閱讀狀態"><span class="clickable" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span></td>
-                <td data-label="書名/作者"><strong class="edit-link" onclick="editBook('${book.title}', '${book.language}')">${book.title}</strong><br><small class="clickable" onclick="setFilter('作者','${book.author}')">${book.author}</small></td>
-                <td data-label="類型"><small class="clickable" onclick="setFilter('語言','${book.language}')">${book.language}</small> ${book.format.map(f => `<span class="tag-pill format-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')} <small class="clickable" onclick="setFilter('類型','${book.bookCategory}')">${book.bookCategory}</small></td>
-                <td data-label="書籍位置"><span class="clickable" onclick="setFilter('位置','${book.ePlatform}')">${book.ePlatform}</span></td>
+                <td data-label="閱讀狀態"><span class="tag-pill format-pill" onclick="setFilter('閱讀','${book.readProgress}')">${book.readProgress}</span></td>
+                <td data-label="書名/作者"><strong class="edit-link" onclick="editBook('${book.title}', '${book.language}')">${book.title}</strong><br><small class="tag-pill" style="border:none; background:transparent; padding:0; text-decoration:underline; color:#007bff; cursor:pointer;" onclick="setFilter('作者','${book.author}')">${book.author}</small></td>
+                <td data-label="類型">
+                    <span class="tag-pill format-pill" onclick="setFilter('語言','${book.language}')">${book.language}</span> 
+                    ${book.format.map(f => `<span class="tag-pill format-pill" onclick="setFilter('形式','${f}')">${f}</span>`).join('')} 
+                    <span class="tag-pill format-pill" onclick="setFilter('類型','${book.bookCategory}')">${book.bookCategory}</span>
+                </td>
+                <td data-label="書籍位置"><span class="tag-pill format-pill" onclick="setFilter('位置','${book.ePlatform}')">${book.ePlatform}</span></td>
                 <td data-label="標籤">${book.tags.map(t => `<span class="tag-pill" onclick="setFilter('標籤','${t}')">${t}</span>`).join('')}<div style="margin-top:4px"><span class="tag-pill" style="background:#fff" onclick="setFilter('關聯ID','${book.relationId}')">#${book.relationId}</span></div></td>
                 <td data-label="購買狀況"><span class="progress-text">${volDisplay} ${book.workStatus}</span><div class="progress-sub clickable" onclick="setFilter('購買','${book.buyStatus}')">(${book.buyStatus})</div></td>
                 <td data-label="備註" class="note-cell">${book.notes}</td>
